@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 92" role="img" aria-labelledby="title desc">
+  <title id="title">Arikeade Jewelry</title>
+  <desc id="desc">Arikeade Jewelry wordmark</desc>
+  <rect width="420" height="92" fill="none"/>
+  <circle cx="44" cy="46" r="28" fill="none" stroke="#A17B3E" stroke-width="2"/>
+  <path d="M30 58c8-19 20-30 29-30 8 0 13 8 13 17 0 10-6 19-16 19-10 0-18-7-26-18z" fill="none" stroke="#A17B3E" stroke-width="2"/>
+  <text x="88" y="55" fill="#27221E" font-family="Georgia, 'Times New Roman', serif" font-size="35" font-weight="600" letter-spacing="3">ARIKÉADE</text>
+  <text x="91" y="76" fill="#A17B3E" font-family="Arial, sans-serif" font-size="8.5" font-weight="600" letter-spacing="4.1">JEWELRY &amp; ACCESSORIES</text>
+</svg>

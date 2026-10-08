@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Arikeade Jewelry product management dashboard.">
+<meta name="theme-color" content="#17120f"><title>Arikeade Jewelry — Admin Products</title>
+<link rel="icon" type="image/png" href="assets/arikeade-logo-header.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="admin-shell">
+<header class="admin-header">
+  <a class="admin-brand" href="index.html"><img src="assets/arikeade-logo-header.png" alt="Arikeade Jewelry"><span>PRODUCT MANAGER</span></a>
+  <div class="admin-head-actions"><span id="apiStatus" class="api-status">LOCAL MODE</span><a class="view-store" href="index.html">View Storefront ↗</a><button id="logoutButton" class="ghost-btn hidden">Logout</button><button id="resetCatalog" class="ghost-btn">Reset Demo Catalog</button></div>
+</header>
+<section id="loginPanel" class="login-panel hidden" aria-label="Admin login"><div class="login-card"><p class="eyebrow">ARIKÉADE JEWELRY · SECURE ACCESS</p><h1>Admin Sign In</h1><p>Sign in to manage the shared catalog.</p><form id="loginForm"><label class="field"><span>Email</span><input id="loginEmail" type="email" autocomplete="username" required placeholder="admin@arikeadejewelry.com"></label><label class="field"><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password" required placeholder="••••••••"></label><div id="loginError" class="form-error" role="alert"></div><button class="save-btn" type="submit">SIGN IN <span>→</span></button></form></div></section><main class="admin-main">
+  <section class="admin-intro">
+    <div><p class="eyebrow">ARIKÉADE JEWELRY · ADMIN</p><h1>Product Manager</h1><p>Add jewelry in minutes: upload photos, enter the price, set stock and publish.</p></div>
+    <div class="storage-note"><strong>V13 shared catalog</strong><span>API mode stores products in MongoDB. Image URL management is supported now; direct cloud photo upload is planned for V14.</span></div>
+  </section>
+  <section class="admin-grid">
+    <div class="panel form-panel">
+      <div class="panel-head"><div><p class="eyebrow">CATALOG ENTRY</p><h2 id="formTitle">Add Product</h2></div><button id="cancelEdit" class="text-btn hidden">Cancel edit</button></div>
+      <form id="productForm" novalidate>
+        <input type="hidden" id="productId">
+        <div class="image-upload">
+          <div class="upload-head"><label>Product photos <span>up to 4</span></label><span id="imageCount">0 / 4</span></div>
+          <label class="dropzone" id="dropzone" for="imageInput"><input id="imageInput" type="file" accept="image/*" multiple><div class="upload-icon">＋</div><strong>Drop photos here or click to upload</strong><small>JPG, PNG or WebP · images are optimized in your browser</small></label>
+          <div id="imagePreview" class="image-preview"></div>
+        </div>
+        <div class="form-grid"><label class="field wide"><span>Primary image URL <small>(V13 API mode)</small></span><input id="imageUrl" type="url" placeholder="https://images.example.com/product.jpg"></label>
+          <label class="field wide"><span>Product name *</span><input id="name" required maxlength="80" placeholder="e.g. Gold Pearl Necklace"></label>
+          <label class="field"><span>SKU *</span><input id="sku" required maxlength="24" placeholder="ARI-009"></label>
+          <label class="field"><span>Category *</span><select id="category" required><option value="Necklaces">Necklaces</option><option value="Earrings">Earrings</option><option value="Rings">Rings</option><option value="Bracelets">Bracelets</option><option value="Accessories">Accessories</option></select></label>
+          <label class="field"><span>Price (₦) *</span><input id="price" required inputmode="numeric" type="number" min="0" step="500" placeholder="85000"></label>
+          <label class="field"><span>Sale price (₦)</span><input id="salePrice" inputmode="numeric" type="number" min="0" step="500" placeholder="Optional"></label>
+          <label class="field"><span>Stock *</span><input id="stock" required inputmode="numeric" type="number" min="0" step="1" placeholder="12"></label>
+          <label class="field"><span>Material *</span><input id="material" required maxlength="80" placeholder="18K Gold Plated"></label>
+          <label class="field"><span>Rating</span><input id="rating" inputmode="decimal" type="number" min="0" max="5" step="0.1" value="5"></label>
+          <label class="field"><span>Size / dimension</span><input id="size" maxlength="80" placeholder="18 inches"></label>
+          <label class="field wide"><span>Description *</span><textarea id="description" required maxlength="600" rows="5" placeholder="Describe the piece, finish and ideal occasion..."></textarea></label>
+        </div>
+        <div class="checks"><label><input type="checkbox" id="featured"> Featured collection</label><label><input type="checkbox" id="newArrival"> New arrival</label><label><input type="checkbox" id="sale"> On sale</label><label><input type="checkbox" id="active" checked> Visible in store</label></div>
+        <div id="formError" class="form-error" role="alert"></div>
+        <button class="save-btn" type="submit"><span id="saveLabel">SAVE PRODUCT</span><span>→</span></button>
+      </form>
+    </div>
+    <div class="panel catalog-panel">
+      <div class="panel-head"><div><p class="eyebrow">LIVE CATALOG</p><h2>Products <span id="productCount">0</span></h2></div><div class="catalog-actions"><button id="exportCatalog" class="ghost-btn">Export</button><label class="ghost-btn import-label">Import<input id="importCatalog" type="file" accept="application/json"></label></div></div>
+      <div class="catalog-toolbar"><input id="catalogSearch" placeholder="Search products, SKU or category…"><select id="catalogFilter"><option value="All">All products</option><option value="Active">Active</option><option value="Hidden">Hidden</option></select></div>
+      <div id="catalogList" class="catalog-list"></div>
+    </div>
+  </section>
+</main>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</div>
+<script src="js/config.js"></script><script src="js/admin.js"></script>
+</body></html>
