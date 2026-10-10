@@ -6,5 +6,5 @@
  *   https://YOUR-API-DOMAIN/api
  */
 window.ARIKADE_CONFIG = Object.freeze({
-  API_BASE_URL: ""
+  API_BASE_URL: "https://arikeade-jewelry-api.onrender.com/api"
 });

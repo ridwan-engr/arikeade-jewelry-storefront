@@ -21,10 +21,113 @@ async function bootApi(){if(!API_BASE){setStatus(false);return}setStatus(false);
 function renderList(){const q=els.search.value.trim().toLowerCase(),filter=els.filter.value;const shown=products.filter(p=>(filter==="All"||(filter==="Active"?p.active:!p.active))&&(!q||`${p.name} ${p.id} ${p.category} ${p.material}`.toLowerCase().includes(q)));els.productCount.textContent=products.length;els.list.innerHTML=shown.length?shown.map(p=>`<article class="catalog-item"><div class="catalog-thumb"><img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" loading="lazy"></div><div class="catalog-info"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.id)} · ${escapeHtml(p.category)} · ${escapeHtml(p.material)}</span><div class="catalog-price">${money(p.salePrice||p.price)} ${p.salePrice?`<del>${money(p.price)}</del>`:""} · ${p.stock} in stock</div><span class="status ${p.active?"":"hidden-status"}">${p.active?"Live":"Hidden"}</span></div><div class="catalog-actions-row"><button class="mini-btn" data-edit="${escapeHtml(p.id)}">EDIT</button><button class="mini-btn danger" data-delete="${escapeHtml(p.id)}">DELETE</button></div></article>`).join(""):`<div class="empty-list">No products match this filter.</div>`}
 function preview(){els.count.textContent=`${selectedImages.length} / 4`;els.preview.innerHTML=selectedImages.map((src,i)=>`<div class="preview"><img src="${src}" alt="Product photo ${i+1}"><button type="button" data-remove-image="${i}" aria-label="Remove image">×</button>${i===0?"<span>PRIMARY</span>":""}</div>`).join("")}
 function compress(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{const img=new Image();img.onload=()=>{const max=1400,scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",.82))};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
-async function addFiles(files){const available=4-selectedImages.length;for(const f of [...files].slice(0,available)){if(!f.type.startsWith("image/"))continue;try{selectedImages.push(await compress(f))}catch{notify("One image could not be processed.")}}preview()}
+
+async function addFiles(files) {
+  const available = 4 - selectedImages.length;
+
+  if (available <= 0) {
+    notify('You can select up to 4 product images.');
+    return;
+  }
+
+  const chosen = [...files].slice(0, available);
+  const valid = chosen.filter(file =>
+    ['image/jpeg', 'image/png', 'image/webp', 'image/avif'].includes(file.type)
+  );
+
+  if (valid.length !== chosen.length) {
+    notify('Use JPEG, PNG, WebP or AVIF images.');
+  }
+
+  if (API_BASE) {
+    const token = authToken();
+
+    if (!token) {
+      notify('Please log in to upload product images.');
+      return;
+    }
+
+    const formData = new FormData();
+    valid.forEach(file => formData.append('images', file));
+
+    try {
+      const response = await fetch(`${API_BASE}/uploads/images`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {}
+
+      if (!response.ok) {
+        throw new Error(data.message || `Image upload failed (${response.status}).`);
+      }
+
+      const urls = (data.images || []).map(image => image.url).filter(Boolean);
+
+      if (urls.length !== valid.length) {
+        throw new Error('The server did not return all image URLs.');
+      }
+
+      selectedImages.push(...urls);
+      preview();
+      notify(`${urls.length} image(s) uploaded to Cloudinary.`);
+    } catch (error) {
+      els.error.textContent = error.message;
+    }
+
+    return;
+  }
+
+  // Preserve the existing local-demo image workflow.
+  for (const file of valid) {
+    try {
+      selectedImages.push(await compress(file));
+    } catch {
+      notify('One image could not be processed.');
+    }
+  }
+
+  preview();
+}
+
 function resetForm(){editingId=null;els.form.reset();els.id.value="";els.rating.value="5";els.active.checked=true;selectedImages=[];preview();els.title.textContent="Add Product";els.saveLabel.textContent="SAVE PRODUCT";els.cancel.classList.add("hidden");els.error.textContent=""}
 function fill(p){editingId=p.id;els.id.value=p.id;els.name.value=p.name;els.sku.value=p.id;els.category.value=p.category;els.price.value=p.price;els.salePrice.value=p.salePrice||"";els.stock.value=p.stock;els.material.value=p.material;els.rating.value=p.rating??5;els.size.value=p.size||"";els.description.value=p.description||"";els.imageUrl.value=p.image||"";els.featured.checked=!!p.featured;els.newArrival.checked=!!p.newArrival;els.sale.checked=!!p.sale;els.active.checked=p.active!==false;selectedImages=[...(p.gallery&&p.gallery.length?p.gallery:[p.image]).filter(Boolean)].slice(0,4);preview();els.title.textContent="Edit Product";els.saveLabel.textContent="UPDATE PRODUCT";els.cancel.classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})}
-function collect(){const gallery=selectedImages.length?selectedImages:(editingId?(products.find(p=>p.id===editingId)?.gallery||[]):[]);const primary=API_BASE?(els.imageUrl.value.trim()||gallery[0]||""):(gallery[0]||els.imageUrl.value.trim()||"");return {sku:editingId||els.sku.value.trim().toUpperCase(),name:els.name.value.trim(),category:els.category.value,price:Number(els.price.value),salePrice:Number(els.salePrice.value||0),stock:Number(els.stock.value),material:els.material.value.trim(),rating:Number(els.rating.value||5),size:els.size.value.trim(),description:els.description.value.trim(),featured:els.featured.checked,newArrival:els.newArrival.checked,sale:els.sale.checked,active:els.active.checked,image:primary,gallery:[primary,...gallery.filter(x=>x!==primary)].slice(0,8),theme:""}}
+
+function collect() {
+  const existing = products.find(p => p.id === editingId);
+  const gallery = selectedImages.length
+    ? selectedImages
+    : (existing?.gallery || []);
+
+  const primary = API_BASE
+    ? (selectedImages[0] || els.imageUrl.value.trim() || '')
+    : (gallery[0] || els.imageUrl.value.trim() || '');
+
+  return {
+    sku: editingId || els.sku.value.trim().toUpperCase(),
+    name: els.name.value.trim(),
+    category: els.category.value,
+    price: Number(els.price.value),
+    salePrice: Number(els.salePrice.value || 0),
+    stock: Number(els.stock.value),
+    material: els.material.value.trim(),
+    rating: Number(els.rating.value || 5),
+    size: els.size.value.trim(),
+    description: els.description.value.trim(),
+    featured: els.featured.checked,
+    newArrival: els.newArrival.checked,
+    sale: els.sale.checked,
+    active: els.active.checked,
+    image: primary,
+    gallery: [primary, ...gallery.filter(url => url !== primary)].slice(0, 8),
+    theme: existing?.theme || ''
+  };
+}
+
 async function saveProduct(e){e.preventDefault();els.error.textContent="";if(!els.form.checkValidity()){els.form.reportValidity();return}const data=collect();if(data.salePrice&&data.salePrice>=data.price){els.error.textContent="Sale price must be lower than the regular price.";return}if(!data.image){els.error.textContent=API_BASE?"V13 API mode requires an image URL. Cloud image upload is the next V14 phase.":"Please upload at least one product photo.";return}try{if(API_BASE){const body={...data};if(body.image.startsWith("data:")){els.error.textContent="For shared API mode, use an image URL until Cloudinary is connected in V14.";return}const result=editingId?await api(`/products/${encodeURIComponent(editingId)}`,{method:"PUT",body:JSON.stringify(body)}):await api("/products",{method:"POST",body:JSON.stringify(body)});const p=normalize(result.product);products=editingId?products.map(x=>x.id===editingId?p:x):[p,...products];persist();notify(editingId?"Product updated on the shared catalog.":"Product added to the shared catalog.")}else{const old=products.find(p=>p.id===editingId);if(products.some(p=>p.id===data.sku&&p.id!==editingId)){els.error.textContent="That SKU already exists. Use a unique SKU.";return}const p={...data,id:data.sku,theme:old?.theme||""};products=editingId?products.map(x=>x.id===editingId?p:x):[p,...products];persist();notify(editingId?"Product updated successfully.":"Product added to the browser catalog.")}renderList();resetForm()}catch(err){els.error.textContent=err.message}}
 async function deleteProduct(id){if(!confirm(`Delete ${id}?`))return;try{if(API_BASE)await api(`/products/${encodeURIComponent(id)}`,{method:"DELETE"});products=products.filter(p=>p.id!==id);persist();renderList();notify("Product deleted.")}catch(e){notify(e.message)}}
 function exportCatalog(){const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="arikeade-products.json";a.click();URL.revokeObjectURL(a.href)}
